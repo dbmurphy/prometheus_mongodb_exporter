@@ -18,6 +18,7 @@
 |--log.level|Only log messages with the given severity or above. Valid levels: [debug, info, warn, error, fatal]|--log.level="error"|
 |--collector.diagnosticdata|Enable collecting metrics from getDiagnosticData|
 |--collector.replicasetstatus|Enable collecting metrics from replSetGetStatus|
+|--collector.serverstatus|Enable collecting metrics from serverStatus|
 |--collector.dbstats|Enable collecting metrics from dbStats||
 |--collector.dbstatsfreestorage|Enable collecting freeStorage metrics from dbStats. If the instance has a large number of collections or indexes, obtaining free space usage data may cause processing delays||
 |--collector.topmetrics|Enable collecting metrics from top admin command|

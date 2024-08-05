@@ -64,6 +64,7 @@ type Opts struct {
 	EnableDBStatsFreeStorage bool
 	EnableDiagnosticData     bool
 	EnableReplicasetStatus   bool
+	EnableServerStatus       bool
 	EnableCurrentopMetrics   bool
 	EnableTopMetrics         bool
 	EnableIndexStats         bool
@@ -157,6 +158,7 @@ func (e *Exporter) makeRegistry(ctx context.Context, client *mongo.Client, topol
 		e.opts.EnableCollStats = true
 		e.opts.EnableTopMetrics = true
 		e.opts.EnableReplicasetStatus = true
+		e.opts.EnableServerStatus = true
 		e.opts.EnableIndexStats = true
 		e.opts.EnableCurrentopMetrics = true
 		e.opts.EnableProfile = true
@@ -192,7 +194,9 @@ func (e *Exporter) makeRegistry(ctx context.Context, client *mongo.Client, topol
 		registry.MustRegister(ic)
 	}
 
-	if e.opts.EnableDiagnosticData && requestOpts.EnableDiagnosticData {
+	// getDiagnosticData does not return any data on mongos.
+	collectDiagnosticData := e.opts.EnableDiagnosticData && nodeType != typeMongos && requestOpts.EnableDiagnosticData
+	if collectDiagnosticData {
 		ddc := newDiagnosticDataCollector(ctx, client, e.opts.Logger,
 			e.opts.CompatibleMode, topologyInfo)
 		registry.MustRegister(ddc)
@@ -222,11 +226,20 @@ func (e *Exporter) makeRegistry(ctx context.Context, client *mongo.Client, topol
 		registry.MustRegister(tc)
 	}
 
-	// replSetGetStatus is not supported through mongos.
-	if e.opts.EnableReplicasetStatus && nodeType != typeMongos && requestOpts.EnableReplicasetStatus {
-		rsgsc := newReplicationSetStatusCollector(ctx, client, e.opts.Logger,
-			e.opts.CompatibleMode, topologyInfo)
-		registry.MustRegister(rsgsc)
+	// Only collect replica set and server status separately if we're not already fetching via diagnostic data
+	if !collectDiagnosticData {
+		// replSetGetStatus is not supported through mongos.
+		if e.opts.EnableReplicasetStatus && nodeType != typeMongos && requestOpts.EnableReplicasetStatus {
+			rsgsc := newReplicationSetStatusCollector(ctx, client, e.opts.Logger,
+				e.opts.CompatibleMode, topologyInfo)
+			registry.MustRegister(rsgsc)
+		}
+
+		if e.opts.EnableServerStatus && requestOpts.EnableServerStatus {
+			ssc := newServerStatusCollector(ctx, client, e.opts.Logger,
+				e.opts.CompatibleMode, topologyInfo)
+			registry.MustRegister(ssc)
+		}
 	}
 
 	if e.opts.EnableShards && nodeType == typeMongos && requestOpts.EnableShards {
@@ -296,6 +309,8 @@ func (e *Exporter) Handler() http.Handler {
 				requestOpts.EnableDiagnosticData = true
 			case "replicasetstatus":
 				requestOpts.EnableReplicasetStatus = true
+			case "serverstatus":
+				requestOpts.EnableServerStatus = true
 			case "dbstats":
 				requestOpts.EnableDBStats = true
 			case "topmetrics":

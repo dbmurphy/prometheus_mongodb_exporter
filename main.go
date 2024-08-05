@@ -51,6 +51,7 @@ type GlobalFlags struct {
 
 	EnableDiagnosticData     bool `name:"collector.diagnosticdata" help:"Enable collecting metrics from getDiagnosticData"`
 	EnableReplicasetStatus   bool `name:"collector.replicasetstatus" help:"Enable collecting metrics from replSetGetStatus"`
+	EnableServerStatus       bool `name:"collector.serverstatus" help:"Enable collecting metrics from serverStatus"`
 	EnableDBStats            bool `name:"collector.dbstats" help:"Enable collecting metrics from dbStats"`
 	EnableDBStatsFreeStorage bool `name:"collector.dbstatsfreestorage" help:"Enable collecting free space metrics from dbStats"`
 	EnableTopMetrics         bool `name:"collector.topmetrics" help:"Enable collecting metrics from top admin command"`
@@ -149,6 +150,7 @@ func buildExporter(opts GlobalFlags, uri string, log *logrus.Logger) *exporter.E
 
 		EnableDiagnosticData:     opts.EnableDiagnosticData,
 		EnableReplicasetStatus:   opts.EnableReplicasetStatus,
+		EnableServerStatus:       opts.EnableServerStatus,
 		EnableCurrentopMetrics:   opts.EnableCurrentopMetrics,
 		EnableTopMetrics:         opts.EnableTopMetrics,
 		EnableDBStats:            opts.EnableDBStats,

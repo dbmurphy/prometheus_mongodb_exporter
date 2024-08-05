@@ -40,19 +40,19 @@ func TestReplsetStatusCollector(t *testing.T) {
 
 	// The last \n at the end of this string is important
 	expected := strings.NewReader(`
-	# HELP mongodb_myState myState
-	# TYPE mongodb_myState untyped
-	mongodb_myState 1
-	# HELP mongodb_ok ok
-	# TYPE mongodb_ok untyped
-	mongodb_ok 1` + "\n")
+	# HELP mongodb_rs_myState replSetGetStatus.
+	# TYPE mongodb_rs_myState untyped
+	mongodb_rs_myState 1
+	# HELP mongodb_rs_ok replSetGetStatus.
+	# TYPE mongodb_rs_ok untyped
+	mongodb_rs_ok 1` + "\n")
 	// Filter metrics for 2 reasons:
 	// 1. The result is huge
 	// 2. We need to check against know values. Don't use metrics that return counters like uptime
 	//    or counters like the number of transactions because they won't return a known value to compare
 	filter := []string{
-		"mongodb_myState",
-		"mongodb_ok",
+		"mongodb_rs_myState",
+		"mongodb_rs_ok",
 	}
 	err := testutil.CollectAndCompare(c, expected, filter...)
 	assert.NoError(t, err)
