@@ -323,6 +323,11 @@ func (e *Exporter) Handler() http.Handler {
 				e.lock.Lock()
 				e.totalCollectionsCount = count
 				e.lock.Unlock()
+			} else {
+				e.logger.Errorf("Cannot count NonSystemCollections: %v", err)
+				e.lock.Lock()
+				e.totalCollectionsCount = 0
+				e.lock.Unlock()
 			}
 		}
 
