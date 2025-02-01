@@ -18,6 +18,7 @@ package exporter
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -66,6 +67,12 @@ func (d *topCollector) collect(ch chan<- prometheus.Metric) {
 
 	var m primitive.M
 	if err := res.Decode(&m); err != nil {
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == Unauthorized {
+				logger.Errorf("unauthorized to run top command")
+				os.Exit(1)
+			}
+		}
 		ch <- prometheus.NewInvalidMetric(prometheus.NewInvalidDesc(err), err)
 		return
 	}

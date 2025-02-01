@@ -17,6 +17,7 @@ package exporter
 
 import (
 	"context"
+	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -27,6 +28,7 @@ import (
 const (
 	replicationNotEnabled        = 76
 	replicationNotYetInitialized = 94
+	Unauthorized                 = 13
 )
 
 type replSetGetStatusCollector struct {
@@ -71,6 +73,10 @@ func (d *replSetGetStatusCollector) collect(ch chan<- prometheus.Metric) {
 		if e, ok := err.(mongo.CommandError); ok {
 			if e.Code == replicationNotYetInitialized || e.Code == replicationNotEnabled {
 				return
+			}
+			if e.Code == Unauthorized {
+				logger.Errorf("unauthorized to run replSetGetStatus: %s", err)
+				os.Exit(1)
 			}
 		}
 		logger.Errorf("cannot get replSetGetStatus: %s", err)

@@ -17,6 +17,7 @@ package exporter
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"time"
 
@@ -90,6 +91,13 @@ func (d *currentopCollector) collect(ch chan<- prometheus.Metric) {
 
 	var r primitive.M
 	if err := res.Decode(&r); err != nil {
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == Unauthorized {
+				logger.Errorf("unauthorized to run currtop: %s", err)
+				os.Exit(1)
+			}
+		}
+
 		logger.Errorf("Failed to decode currentOp response: %s", err)
 		ch <- prometheus.NewInvalidMetric(prometheus.NewInvalidDesc(err), err)
 		return

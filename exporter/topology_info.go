@@ -18,6 +18,7 @@ package exporter
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -143,6 +144,12 @@ func getNodeType(ctx context.Context, client *mongo.Client) (mongoDBNodeType, er
 	}
 	md := proto.MasterDoc{}
 	if err := client.Database("admin").RunCommand(ctx, primitive.M{"isMaster": 1}).Decode(&md); err != nil {
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == Unauthorized {
+				errors.New("unauthorized to getisMaster")
+				os.Exit(1)
+			}
+		}
 		return "", err
 	}
 
@@ -171,6 +178,12 @@ func getClusterRole(ctx context.Context, client *mongo.Client) (string, error) {
 	}
 
 	if err := res.Decode(&cmdOpts); err != nil {
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == Unauthorized {
+				errors.New("unauthorized to getCmdLineOpts")
+				os.Exit(1)
+			}
+		}
 		return "", errors.Wrap(err, "cannot decode getCmdLineOpts response")
 	}
 

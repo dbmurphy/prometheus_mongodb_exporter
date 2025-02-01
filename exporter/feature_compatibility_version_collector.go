@@ -18,6 +18,7 @@ package exporter
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -61,6 +62,12 @@ func (d *featureCompatibilityCollector) collect(ch chan<- prometheus.Metric) {
 	if err := res.Decode(&m); err != nil {
 		d.base.logger.Errorf("Failed to decode featureCompatibilityVersion: %v", err)
 		ch <- prometheus.NewInvalidMetric(prometheus.NewInvalidDesc(err), err)
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == Unauthorized {
+				d.base.logger.Errorf("Failed to decode featureCompatibilityVersion: %v", err)
+				os.Exit(1)
+			}
+		}
 		return
 	}
 

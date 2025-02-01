@@ -17,6 +17,7 @@ package exporter
 
 import (
 	"context"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -94,6 +95,12 @@ func (d *diagnosticDataCollector) collect(ch chan<- prometheus.Metric) {
 		}
 	} else {
 		if err := res.Decode(&m); err != nil {
+			if e, ok := err.(mongo.CommandError); ok {
+				if e.Code == Unauthorized {
+					logger.Errorf("unauthorized to run getDiagnosticData: %s", err)
+					os.Exit(1)
+				}
+			}
 			logger.Errorf("cannot run getDiagnosticData: %s", err)
 			return
 		}
@@ -163,6 +170,12 @@ func (d *diagnosticDataCollector) getSecurityMetricFromLineOptions(client *mongo
 		return nil, errors.Wrap(resCmdLineOptions.Err(), "cannot execute getCmdLineOpts command")
 	}
 	if err := resCmdLineOptions.Decode(&cmdLineOpionsBson); err != nil {
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == Unauthorized {
+				errors.New("unauthorized to run getCmdLineOpts")
+				os.Exit(1)
+			}
+		}
 		return nil, errors.Wrap(err, "cannot parse response of the getCmdLineOpts command")
 	}
 

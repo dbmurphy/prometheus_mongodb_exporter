@@ -17,6 +17,7 @@ package exporter
 
 import (
 	"context"
+	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -84,6 +85,12 @@ func (d *dbstatsCollector) collect(ch chan<- prometheus.Metric) {
 		r := client.Database(db).RunCommand(d.ctx, cmd)
 		err := r.Decode(&dbStats)
 		if err != nil {
+			if e, ok := err.(mongo.CommandError); ok {
+				if e.Code == Unauthorized {
+					logger.Errorf("unauthorized to run replSetGetStatus: %s", err)
+					os.Exit(1)
+				}
+			}
 			logger.Errorf("Failed to get $dbstats for database %s: %s", db, err)
 
 			continue

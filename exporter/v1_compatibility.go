@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"os"
 	"strings"
 	"time"
 
@@ -835,6 +836,12 @@ func retrieveMongoDBBuildInfo(ctx context.Context, client *mongo.Client, l *logr
 	var buildInfoDoc bson.M
 	err := res.Decode(&buildInfoDoc)
 	if err != nil {
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == Unauthorized {
+				errors.Wrap(err, "unauthorized to run command buildInfo")
+				os.Exit(1)
+			}
+		}
 		return buildInfo{}, errors.Wrap(err, "Failed to run buildInfo command")
 	}
 
@@ -1176,6 +1183,12 @@ func chunksBalancerRunning(ctx context.Context, client *mongo.Client) (prometheu
 	res := client.Database("admin").RunCommand(ctx, cmd)
 
 	if err := res.Decode(&m); err != nil {
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == Unauthorized {
+				errors.Wrap(err, "unauthorized to run command balancerStatus")
+				os.Exit(1)
+			}
+		}
 		return nil, err
 	}
 
@@ -1201,6 +1214,12 @@ func balancerEnabled(ctx context.Context, client *mongo.Client) (prometheus.Metr
 	cmd := bson.D{{Key: "balancerStatus", Value: "1"}}
 	err := client.Database("admin").RunCommand(ctx, cmd).Decode(&bs)
 	if err != nil {
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == Unauthorized {
+				errors.Wrap(err, "unauthorized to run command balancerStatus")
+				os.Exit(1)
+			}
+		}
 		return nil, err
 	}
 	if bs.Mode == "full" {

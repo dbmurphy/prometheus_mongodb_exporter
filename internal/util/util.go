@@ -17,6 +17,8 @@ package util
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -29,6 +31,7 @@ const (
 	ErrNotYetInitialized     = int32(94)
 	ErrNoReplicationEnabled  = int32(76)
 	ErrNotPrimaryOrSecondary = int32(13436)
+	ErrNotUnauthorized       = int32(13)
 )
 
 // MyState returns the replica set and the instance's state if available.
@@ -37,6 +40,12 @@ func MyState(ctx context.Context, client *mongo.Client) (string, int, error) {
 
 	err := client.Database("admin").RunCommand(ctx, bson.M{"replSetGetStatus": 1}).Decode(&status)
 	if err != nil {
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == ErrNotUnauthorized {
+				fmt.Fprintf(os.Stderr, "unauthorized to run command replSetGetStatus: %v\n", err)
+				os.Exit(1)
+			}
+		}
 		return "", 0, err
 	}
 
@@ -48,6 +57,12 @@ func MyRole(ctx context.Context, client *mongo.Client) (*proto.HelloResponse, er
 	var role proto.HelloResponse
 	err := client.Database("admin").RunCommand(ctx, bson.M{"isMaster": 1}).Decode(&role)
 	if err != nil {
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == ErrNotUnauthorized {
+				fmt.Fprintf(os.Stderr, "unauthorized to run command isMaster: %v\n", err)
+				os.Exit(1)
+			}
+		}
 		return nil, err
 	}
 
@@ -57,6 +72,12 @@ func MyRole(ctx context.Context, client *mongo.Client) (*proto.HelloResponse, er
 func ReplicasetConfig(ctx context.Context, client *mongo.Client) (*proto.ReplicasetConfig, error) {
 	var rs proto.ReplicasetConfig
 	if err := client.Database("admin").RunCommand(ctx, bson.M{"replSetGetConfig": 1}).Decode(&rs); err != nil {
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == ErrNotUnauthorized {
+				fmt.Fprintf(os.Stderr, "unauthorized to run command replSetGetConfig: %v\n", err)
+				os.Exit(1)
+			}
+		}
 		return nil, err
 	}
 
