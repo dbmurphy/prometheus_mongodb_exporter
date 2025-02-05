@@ -31,13 +31,14 @@ type collstatsCollector struct {
 
 	compatibleMode  bool
 	discoveringMode bool
+	enableDetails   bool
 	topologyInfo    labelsGetter
 
 	collections []string
 }
 
 // newCollectionStatsCollector creates a collector for statistics about collections.
-func newCollectionStatsCollector(ctx context.Context, client *mongo.Client, logger *logrus.Logger, discovery bool, topology labelsGetter, collections []string) *collstatsCollector {
+func newCollectionStatsCollector(ctx context.Context, client *mongo.Client, logger *logrus.Logger, discovery bool, topology labelsGetter, collections []string, enableDetails bool) *collstatsCollector {
 	return &collstatsCollector{
 		ctx:  ctx,
 		base: newBaseCollector(client, logger.WithFields(logrus.Fields{"collector": "collstats"})),
@@ -46,7 +47,8 @@ func newCollectionStatsCollector(ctx context.Context, client *mongo.Client, logg
 		discoveringMode: discovery,
 		topologyInfo:    topology,
 
-		collections: collections,
+		collections:   collections,
+		enableDetails: enableDetails,
 	}
 }
 
@@ -109,6 +111,18 @@ func (d *collstatsCollector) collect(ch chan<- prometheus.Metric) {
 		}
 
 		pipeline := mongo.Pipeline{aggregation}
+
+		if !d.enableDetails {
+			project := bson.D{
+				{
+					Key: "$project", Value: bson.M{
+						"storageStats.wiredTiger":   0,
+						"storageStats.indexDetails": 0,
+					},
+				},
+			}
+			pipeline = append(pipeline, project)
+		}
 
 		cursor, err := client.Database(database).Collection(collection).Aggregate(d.ctx, pipeline)
 		if err != nil {

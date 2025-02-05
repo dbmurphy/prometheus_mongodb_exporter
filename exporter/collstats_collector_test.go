@@ -54,7 +54,7 @@ func TestCollStatsCollector(t *testing.T) {
 
 	collection := []string{"testdb.testcol_00", "testdb.testcol_01", "testdb.testcol_02"}
 	logger := logrus.New()
-	c := newCollectionStatsCollector(ctx, client, logger, false, ti, collection)
+	c := newCollectionStatsCollector(ctx, client, logger, false, ti, collection, false)
 
 	// The last \n at the end of this string is important
 	expected := strings.NewReader(`

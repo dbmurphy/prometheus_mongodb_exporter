@@ -45,19 +45,13 @@ type Exporter struct {
 
 // Opts holds new exporter options.
 type Opts struct {
-	// Only get stats for the collections matching this list of namespaces.
-	// Example: db1.col1,db.col1
-	CollStatsNamespaces    []string
-	CollStatsLimit         int
 	CompatibleMode         bool
 	DirectConnect          bool
 	ConnectTimeoutMS       int
 	DisableDefaultRegistry bool
 	DiscoveringMode        bool
 	GlobalConnPool         bool
-	ProfileTimeTS          int
 	TimeoutOffset          int
-	CurrentOpSlowTime      string
 
 	CollectAll               bool
 	EnableDBStats            bool
@@ -72,14 +66,20 @@ type Opts struct {
 	EnableProfile            bool
 	EnableShards             bool
 	EnableFCV                bool // Feature Compatibility Version.
+	EnablePBMMetrics         bool
 
 	EnableOverrideDescendingIndex bool
 
-	// Enable metrics for Percona Backup for MongoDB (PBM).
-	EnablePBMMetrics bool
+	// Only get stats for the collections matching this list of namespaces.
+	// Example: db1.col1,db.col1
+	CollStatsNamespaces    []string
+	CollStatsLimit         int
+	CollStatsEnableDetails bool
+	IndexStatsCollections  []string
+	CurrentOpSlowTime      string
+	ProfileTimeTS          int
 
-	IndexStatsCollections []string
-	Logger                *logrus.Logger
+	Logger *logrus.Logger
 
 	URI      string
 	NodeName string
@@ -192,7 +192,7 @@ func (e *Exporter) makeRegistry(ctx context.Context, client *mongo.Client, topol
 	if (len(e.opts.CollStatsNamespaces) > 0 || e.opts.DiscoveringMode) && e.opts.EnableCollStats && limitsOk && requestOpts.EnableCollStats {
 		cc := newCollectionStatsCollector(ctx, client, e.opts.Logger,
 			e.opts.DiscoveringMode,
-			topologyInfo, e.opts.CollStatsNamespaces)
+			topologyInfo, e.opts.CollStatsNamespaces, e.opts.CollStatsEnableDetails)
 		registry.MustRegister(cc)
 	}
 
